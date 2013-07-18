@@ -1,6 +1,7 @@
 package ru.gavr.android.geoquiz;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -20,6 +21,8 @@ public class QuizActivity extends Activity {
     private ImageButton mPrevButton;
     private TextView mQuestionTextView;
 
+    private Button mCheatButton;
+
     private TrueFalse[] mQuestionBank = new TrueFalse[] {
             new TrueFalse(R.string.question_oceans, true),
             new TrueFalse(R.string.question_mideast, false),
@@ -29,6 +32,7 @@ public class QuizActivity extends Activity {
     };
 
     private int mCurrentIndex = 0;
+    private boolean mIsCheater;
 
     /** Called when the activity is first created. */
     @Override
@@ -73,6 +77,7 @@ public class QuizActivity extends Activity {
             @Override
             public void onClick(View view) {
                 mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
+                mIsCheater = false;
                 updateQuestion();
             }
         });
@@ -82,9 +87,28 @@ public class QuizActivity extends Activity {
             @Override
             public void onClick(View view) {
                 mCurrentIndex = --mCurrentIndex < 0 ? (mQuestionBank.length - 1) : mCurrentIndex;
+                mIsCheater = false;
                 updateQuestion();
             }
         });
+
+    mCheatButton = (Button)findViewById(R.id.cheat_button);
+        mCheatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(QuizActivity.this, CheatActivity.class);
+                i.putExtra(CheatActivity.EXTRA_ANSWER_IS_TRUE, mQuestionBank[mCurrentIndex].isTrueQuestion());
+                startActivityForResult(i, 0);
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (data == null) {
+            return;
+        }
+        mIsCheater = data.getBooleanExtra(CheatActivity.EXTRA_ANSWER_SHOW, false);
     }
 
     @Override
@@ -131,10 +155,14 @@ public class QuizActivity extends Activity {
     private void checkAnswer(boolean userPressTrue) {
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isTrueQuestion();
         int messageResId = 0;
-        if (userPressTrue == answerIsTrue) {
-            messageResId = R.string.correct_toast;
+        if (mIsCheater) {
+            messageResId = R.string.judgment_toast;
         } else {
-            messageResId = R.string.incorrect_toast;
+            if (userPressTrue == answerIsTrue) {
+                messageResId = R.string.correct_toast;
+            } else {
+                messageResId = R.string.incorrect_toast;
+            }
         }
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
     }
